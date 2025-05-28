@@ -10,7 +10,8 @@ export const addReaction = async (data: {
   type: string
 }) => {
   return supabase.from('Reaction').upsert([data], { onConflict: 'art_piece_id, user_id' }).single()
-}
+} 
+
 
 export const removeReaction = async (art_piece_id: number, user_id: string) => {
   return supabase.from('Reaction').delete().eq('art_piece_id', art_piece_id).eq('user_id', user_id)
