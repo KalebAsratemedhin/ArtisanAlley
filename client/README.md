@@ -1,6 +1,6 @@
 # ArtisanAlley - Digital Art Marketplace
 
-ArtisanAlley is a modern digital art marketplace built with Next.js 15, where artists can showcase and sell their artwork while art enthusiasts can discover and purchase unique pieces. The platform features a rich, interactive user experience with real-time chat, secure payments, and a sophisticated art discovery system.
+ArtisanAlley is a modern digital art marketplace built with Next.js 15 and Supabase, where artists can showcase and sell their artwork while art enthusiasts can discover and purchase unique pieces. The platform features a rich, interactive user experience with real-time chat, secure payments, and a sophisticated art discovery system.
 
 ## 🌟 Features
 
@@ -23,7 +23,7 @@ ArtisanAlley is a modern digital art marketplace built with Next.js 15, where ar
 - **Authentication**: Supabase Auth
 - **Database**: Supabase
 - **Payment Processing**: Stripe
-- **Deployment**: Vercel (recommended)
+- **Deployment**: Vercel
 
 ## 📦 Prerequisites
 
