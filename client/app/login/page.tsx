@@ -18,6 +18,8 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@/components/ui/tabs'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabaseClient'
 
 export default function LoginPage() {
   const [isPending, startTransition] = useTransition()
@@ -26,6 +28,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const router = useRouter()
 
   const resetForm = () => {
     setEmail('')
@@ -36,7 +39,14 @@ export default function LoginPage() {
     startTransition(async () => {
       try {
         await login(formData)
-        toast.success('Logged in successfully')
+        // Fetch user id after login
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user?.id) {
+          router.push(`/profile/${user.id}`)
+        } else {
+          toast.success('Logged in successfully')
+        }
         resetForm()
       } catch (err: any) {
         toast.error(err.message || 'Login failed')
