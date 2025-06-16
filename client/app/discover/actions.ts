@@ -105,7 +105,7 @@ export async function getSuggestedArtists() {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Get artists with their profiles and follower counts
-  const { data, error } = await supabase
+    let query = supabase
     .from('profiles')
     .select(`
       id,
@@ -113,8 +113,14 @@ export async function getSuggestedArtists() {
       avatar_url,
       followers:follows!following_id(count)
     `)
-    .not('name', 'is', null)
-    .not('id', 'eq', user?.id) // Exclude current user
+    .not('name', 'is', null);
+
+  if (user?.id) {
+    query = query.not('id', 'eq', user.id);
+  }
+
+  const { data, error } = await query;
+// Exclude current user
 
   if (error) {
     console.error('Error fetching suggested artists:', error)

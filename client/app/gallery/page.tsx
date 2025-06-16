@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { getUserArtworks } from './actions'
+import { ArtworkCard } from '@/components/ArtworkCard'
 
 interface Artwork {
   id: string
@@ -59,23 +60,14 @@ export default function GalleryPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {artworks.map(art => (
-            <Link
+            <ArtworkCard
               key={art.id}
-              href={`/art-details/${art.id}`}
-              className="rounded overflow-hidden shadow-md block hover:shadow-lg transition"
-            >
-              <div className="relative h-48">
-                <Image
-                  src={art.image}
-                  alt={art.title}
-                  fill
-                  className="object-cover bg-gray-100"
-                />
-              </div>
-              <div className="p-2 text-sm font-medium truncate">
-                {art.title}
-              </div>
-            </Link>
+              id={art.id}
+              title={art.title}
+              image={art.image}
+              artistName="Unknown Artist"
+              artistAvatar={null}
+            />
           ))}
         </div>
       )}

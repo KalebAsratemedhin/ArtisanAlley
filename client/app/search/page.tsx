@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Image from 'next/image'
 import Link from 'next/link'
 import { searchContent } from '@/app/actions/search'
+import { ArtworkCard } from '@/components/ArtworkCard'
 
 function SearchContent() {
   const searchParams = useSearchParams()
@@ -92,25 +93,14 @@ function SearchContent() {
           <TabsContent value="artpieces">
             <div className="grid gap-4">
               {results.artpieces.map((art) => (
-                <Link
+                <ArtworkCard
                   key={art.id}
-                  href={`/art-details/${art.id}`}
-                  className="flex items-center p-4 hover:bg-gray-50 rounded-lg border"
-                >
-                  <div className="h-16 w-16 rounded overflow-hidden mr-4">
-                    <Image
-                      src={art.images[0] || '/placeholder-art.png'}
-                      alt={art.title}
-                      width={64}
-                      height={64}
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{art.title}</span>
-                    <span className="text-sm text-gray-500">by {art.profiles.name}</span>
-                  </div>
-                </Link>
+                  id={art.id}
+                  title={art.title}
+                  image={art.images[0] || '/placeholder-art.png'}
+                  artistName={art.profiles.name}
+                  artistAvatar={null}
+                />
               ))}
               {results.artpieces.length === 0 && (
                 <p className="text-gray-500">No artpieces found</p>

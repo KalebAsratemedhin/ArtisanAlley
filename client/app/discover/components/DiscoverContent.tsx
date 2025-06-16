@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import Link from 'next/link'
 import Image from 'next/image'
 import { getArtworks, getSuggestedArtists } from '../actions'
+import { ArtworkCard } from '@/components/ArtworkCard'
 
 interface Props {
   searchParams?: {
@@ -76,44 +77,14 @@ export async function DiscoverContent({ searchParams = {} }: Props) {
                     key={art.id}
                     className="sm:basis-1/2 md:basis-full lg:basis-1/2 xl:basis-1/3"
                   >
-                    <Link href={`/art-details/${art.id}`}>
-                      <Card className="rounded-xl pt-0 overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-                        <div className="relative">
-                          <Image
-                            src={art.images[0]}
-                            alt={art.title}
-                            width={400}
-                            height={300}
-                            className="w-full h-60 object-cover"
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                            <p className="text-white font-bold text-xl">
-                              ${art.price.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        <CardContent className="p-4 space-y-3">
-                          <h3 className="text-lg font-semibold line-clamp-1">{art.title}</h3>
-                          <div className="flex items-center gap-2">
-                            <Image
-                              src={art.artist.avatar}
-                              alt={art.artist.name}
-                              width={24}
-                              height={24}
-                              className="rounded-full"
-                            />
-                            <p className="text-sm text-muted-foreground">{art.artist.name}</p>
-                          </div>
-                          <div className="flex items-center justify-between text-sm text-muted-foreground">
-                            <p>{new Date(art.created_at).toLocaleDateString()}</p>
-                            <div className="flex items-center gap-3">
-                              <span>👍 {art.likeCount}</span>
-                              <span>👎 {art.dislikeCount}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                    <ArtworkCard
+                      id={art.id}
+                      title={art.title}
+                      image={art.images[0]}
+                      price={art.price}
+                      artistName={art.artist.name}
+                      artistAvatar={art.artist.avatar}
+                    />
                   </CarouselItem>
                 ))}
               </CarouselContent>

@@ -15,6 +15,7 @@ import { ThumbsUp, ThumbsDown, Plus, ShoppingCart, Loader2, UserPlus, UserCheck 
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabaseClient'
 import { useCartStore } from '@/lib/store/cart'
+import { ArtworkCard } from '@/components/ArtworkCard'
 
 interface Artist {
   id: string
@@ -34,7 +35,7 @@ interface Comment {
   created_at: string
   user_id: string
   name: string
-  avatar_url: string
+  avatar_url: string | null
   userReaction: 'like' | 'dislike' | null
   likeCount: number
   dislikeCount: number
@@ -408,7 +409,7 @@ export default function ArtDetails({ id }: { id: string }) {
                 <div key={comment.id}>
                   <div className="p-4 bg-muted rounded-md flex gap-4">
                     <Avatar>
-                      <AvatarImage src={comment.avatar_url} />
+                      <AvatarImage src={comment.avatar_url || undefined} />
                       <AvatarFallback>
                         {comment.name[0]?.toUpperCase()}
                       </AvatarFallback>
@@ -504,7 +505,7 @@ export default function ArtDetails({ id }: { id: string }) {
                             className="p-3 bg-muted/50 rounded-md flex gap-3"
                           >
                             <Avatar className="w-6 h-6">
-                              <AvatarImage src={reply.avatar_url} />
+                              <AvatarImage src={reply.avatar_url || undefined} />
                               <AvatarFallback>
                                 {reply.name[0]?.toUpperCase()}
                               </AvatarFallback>
@@ -576,25 +577,14 @@ export default function ArtDetails({ id }: { id: string }) {
           </h4>
           <div className="grid gap-4">
             {artwork.relatedArtworks.map((art) => (
-              <Link
+              <ArtworkCard
                 key={art.id}
-                href={`/art-details/${art.id}`}
-                className="block group"
-              >
-                <Card className="overflow-hidden pt-0">
-                  <div className="relative aspect-square">
-                    <Image
-                      src={art.image}
-                      alt={art.title}
-                      fill
-                      className="object-cover transition-transform group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="p-2">
-                    <p className="font-medium truncate">{art.title}</p>
-                  </div>
-                </Card>
-              </Link>
+                id={art.id}
+                title={art.title}
+                image={art.image}
+                artistName={artwork.artist.name}
+                artistAvatar={artwork.artist.avatar_url}
+              />
             ))}
           </div>
         </div>
@@ -604,42 +594,15 @@ export default function ArtDetails({ id }: { id: string }) {
           <h4 className="font-semibold mb-2">More in {artwork.category}</h4>
           <div className="grid gap-4">
             {artwork.sameCategoryArtworks.map((art) => (
-              <Link
+              <ArtworkCard
                 key={art.id}
-                href={`/art-details/${art.id}`}
-                className="block group"
-              >
-                <Card className="overflow-hidden">
-                  <div className="relative aspect-square">
-                    <Image
-                      src={art.image}
-                      alt={art.title}
-                      fill
-                      className="object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                      <p className="text-white font-bold">
-                        ${art.price.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-2 space-y-1">
-                    <p className="font-medium truncate">{art.title}</p>
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src={art.artist.avatar_url}
-                        alt={art.artist.name}
-                        width={16}
-                        height={16}
-                        className="rounded-full"
-                      />
-                      <p className="text-xs text-muted-foreground truncate">
-                        {art.artist.name}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
+                id={art.id}
+                title={art.title}
+                image={art.image}
+                price={art.price}
+                artistName={art.artist.name}
+                artistAvatar={art.artist.avatar_url}
+              />
             ))}
           </div>
         </div>
