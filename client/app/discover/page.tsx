@@ -13,7 +13,9 @@ interface Props {
 export default function DiscoverPage({ searchParams }: Props) {
   return (
     <div className="w-full">
-      <Filters />
+      <Suspense fallback={<div className="flex items-center justify-center min-h-[80px]"><div className="text-center text-gray-500">Loading filters...</div></div>}>
+        <Filters />
+      </Suspense>
       <Suspense fallback={
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center text-gray-500">Loading artworks...</div>

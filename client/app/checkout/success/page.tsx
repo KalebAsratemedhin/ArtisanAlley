@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { useCartStore } from '@/lib/store/cart';
 import { createClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clearCart = useCartStore((state) => state.clearCart);
@@ -116,5 +116,13 @@ export default function CheckoutSuccessPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center p-4"><Card className="max-w-md w-full p-6 text-center space-y-4"><Loader2 className="w-16 h-16 animate-spin mx-auto" /><h1 className="text-2xl font-bold">Verifying Your Purchase</h1><p className="text-muted-foreground">Please wait while we confirm your payment...</p></Card></div>}>
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 } 
