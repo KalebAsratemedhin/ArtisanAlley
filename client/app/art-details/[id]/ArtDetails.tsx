@@ -5,21 +5,21 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast, Toaster } from 'sonner'
 import { ImageCarousel } from './components/ImageCarousel'
-import { getArtworkDetails, handleReaction, addComment, addReply, handleCommentReactionApi } from './actions'
+import { getArtworkDetails, handleReaction, addComment, addReply, handleCommentReactionApi, checkIfFollowing, toggleFollow } from './actions'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { formatPrice } from '@/lib/utils'
-import { ThumbsUp, ThumbsDown, Plus, ShoppingCart } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Plus, ShoppingCart, Loader2, UserPlus, UserCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabaseClient'
 import { useCartStore } from '@/lib/store/cart'
 
 interface Artist {
+  id: string
   name: string
   avatar_url: string
-  id: string
 }
 
 interface RelatedArtwork {
@@ -30,11 +30,11 @@ interface RelatedArtwork {
 
 interface Comment {
   id: string
-  name: string
-  avatar_url: string
   comment: string
   created_at: string
   user_id: string
+  name: string
+  avatar_url: string
   userReaction: 'like' | 'dislike' | null
   likeCount: number
   dislikeCount: number
@@ -50,9 +50,20 @@ interface ArtworkDetails {
   category: string
   artist: Artist
   relatedArtworks: RelatedArtwork[]
+  sameCategoryArtworks: {
+    id: string
+    title: string
+    image: string
+    price: number
+    artist: {
+      name: string
+      avatar_url: string
+    }
+  }[]
   reactions: {
     likeCount: number
     dislikeCount: number
+    userReaction: 'like' | 'dislike' | null
   }
   comments: Comment[]
 }
@@ -66,6 +77,7 @@ export default function ArtDetails({ id }: { id: string }) {
   const router = useRouter()
   const [artwork, setArtwork] = useState<ArtworkDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [likeCount, setLikeCount] = useState(0)
   const [dislikeCount, setDislikeCount] = useState(0)
   const [userReaction, setUserReaction] = useState<'like' | 'dislike' | null>(null)
@@ -78,9 +90,12 @@ export default function ArtDetails({ id }: { id: string }) {
   const [replyText, setReplyText] = useState('')
   const [isReplyPosting, setIsReplyPosting] = useState(false)
   const addItem = useCartStore((state) => state.addItem)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [isFollowLoading, setIsFollowLoading] = useState(false)
 
   useEffect(() => {
     async function fetchUserAndArtwork() {
+      setIsLoading(true)
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUserId(user?.id || null)
@@ -90,17 +105,50 @@ export default function ArtDetails({ id }: { id: string }) {
       if (result.error) {
         setError(result.error)
       } else if (result.artwork) {
-        setArtwork(result.artwork)
+        // Ensure all required fields are present with defaults
+        const processedArtwork: ArtworkDetails = {
+          ...result.artwork,
+          description: result.artwork.description || '',
+          images: result.artwork.images || [],
+          category: result.artwork.category || '',
+          artist: {
+            ...result.artwork.artist,
+            avatar_url: result.artwork.artist.avatar_url || ''
+          },
+          sameCategoryArtworks: (result.artwork.sameCategoryArtworks || []).map(art => ({
+            ...art,
+            artist: {
+              ...art.artist,
+              avatar_url: art.artist.avatar_url || ''
+            }
+          })),
+          comments: (result.artwork.comments || []).map(comment => ({
+            ...comment,
+            avatar_url: comment.avatar_url || '',
+            replies: (comment.replies || []).map(reply => ({
+              ...reply,
+              avatar_url: reply.avatar_url || ''
+            }))
+          }))
+        }
+        
+        setArtwork(processedArtwork)
         setLikeCount(result.artwork.reactions.likeCount)
         setDislikeCount(result.artwork.reactions.dislikeCount)
-        setComments(result.artwork.comments)
-        // Set initial user reaction if exists
+        setComments(processedArtwork.comments)
+        
+        // Check if following
         if (user) {
-          const reactions = result.artwork.reactions.userReactions || []
-          const userReaction = reactions.find((r: any) => r.user_id === user.id)?.type || null
-          setUserReaction(userReaction)
+          const followResult = await checkIfFollowing(result.artwork.artist.id)
+          setIsFollowing(followResult.isFollowing)
+        }
+
+        // Set initial user reaction
+        if (user) {
+          setUserReaction(result.artwork.reactions.userReaction)
         }
       }
+      setIsLoading(false)
     }
 
     fetchUserAndArtwork()
@@ -236,6 +284,33 @@ export default function ArtDetails({ id }: { id: string }) {
     toast.success('Added to cart!')
   }
 
+  const handleFollowClick = async () => {
+    if (!artwork || isFollowLoading) return
+    
+    setIsFollowLoading(true)
+    try {
+      const result = await toggleFollow(artwork.artist.id)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        setIsFollowing(!isFollowing)
+        toast.success(result.success)
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update follow status')
+    } finally {
+      setIsFollowLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   if (error || !artwork) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -299,9 +374,20 @@ export default function ArtDetails({ id }: { id: string }) {
               <span className="text-sm">{dislikeCount}</span>
             </div>
 
-            <Button variant="secondary" className="flex items-center gap-2">
-              <Plus className="w-4 h-4 text-blue-950" />
-              Follow {artwork.artist.name}
+            <Button 
+              variant="secondary" 
+              className="flex items-center gap-2"
+              onClick={handleFollowClick}
+              disabled={isFollowLoading || isOwner}
+            >
+              {isFollowLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isFollowing ? (
+                <UserCheck className="w-4 h-4 text-green-600" />
+              ) : (
+                <UserPlus className="w-4 h-4 text-blue-950" />
+              )}
+              {isFollowing ? 'Following' : `Follow ${artwork.artist.name}`}
             </Button>
           </div>
         )}
@@ -483,7 +569,7 @@ export default function ArtDetails({ id }: { id: string }) {
 
       {/* Sidebar */}
       <div className="space-y-6">
-        {/* Artist Info */}te_not_found&error_des
+        {/* Artist Info */}
         <div>
           <h4 className="font-semibold mb-2">
             More by {artwork.artist.name}
@@ -495,7 +581,7 @@ export default function ArtDetails({ id }: { id: string }) {
                 href={`/art-details/${art.id}`}
                 className="block group"
               >
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden pt-0">
                   <div className="relative aspect-square">
                     <Image
                       src={art.image}
@@ -516,7 +602,46 @@ export default function ArtDetails({ id }: { id: string }) {
         {/* Same Category */}
         <div>
           <h4 className="font-semibold mb-2">More in {artwork.category}</h4>
-          {/* TODO: Add same category artworks */}
+          <div className="grid gap-4">
+            {artwork.sameCategoryArtworks.map((art) => (
+              <Link
+                key={art.id}
+                href={`/art-details/${art.id}`}
+                className="block group"
+              >
+                <Card className="overflow-hidden">
+                  <div className="relative aspect-square">
+                    <Image
+                      src={art.image}
+                      alt={art.title}
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                      <p className="text-white font-bold">
+                        ${art.price.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    <p className="font-medium truncate">{art.title}</p>
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src={art.artist.avatar_url}
+                        alt={art.artist.name}
+                        width={16}
+                        height={16}
+                        className="rounded-full"
+                      />
+                      <p className="text-xs text-muted-foreground truncate">
+                        {art.artist.name}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
         <Toaster />
       </div>

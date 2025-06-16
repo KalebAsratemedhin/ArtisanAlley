@@ -21,10 +21,12 @@ import {
   Settings,
   GalleryThumbnails,
   MessageCircle,
+  Search,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CartSheet } from '@/components/cart/CartSheet'
+import { CartButton } from '@/components/cart/CartButton'
+import DiscoverPage from '@/app/discover/page'
 
 export function Header() {
   const pathname = usePathname()
@@ -35,14 +37,16 @@ export function Header() {
 
   useEffect(() => {
     async function getSession() {
-      const { data } = await supabase.auth.getSession()
-      setSession(data.session)
+      const { data } = await supabase.auth.getUser()
+      setSession(data.user)
+
+      console.log(data.user, 'user in header')
       
-      if (data.session?.user) {
+      if (data?.user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('avatar_url')
-          .eq('id', data.session.user.id)
+          .eq('id', data.user.id)
           .single()
         
         setProfileData(profile)
@@ -87,12 +91,15 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-4">
           {session ? (
             <>
-              <CartSheet />
+              <CartButton />
               <Link href="/purchases" className={linkClass('/purchases')}>
                 <ShoppingCart className="w-4 h-4 mr-1" /> Purchases
               </Link>
               <Link href="/gallery" className={linkClass('/gallery')}>
                 <GalleryThumbnails className="w-4 h-4 mr-2" /> Gallery
+              </Link>
+              <Link href="/discover" className={linkClass('/discover')}>
+                <Search className="w-4 h-4 mr-2" /> Discover
               </Link>
               <Link href="/chat" className={linkClass('/chat')}>
                 <MessageCircle className="w-4 h-4 mr-2" /> Chat
@@ -104,7 +111,6 @@ export function Header() {
                   <img
                     src={
                       profileData?.avatar_url ||
-                      session?.user?.user_metadata?.avatar_url ||
                       `https://i.pravatar.cc/40`
                     }
                     className="w-8 h-8 rounded-full cursor-pointer"
@@ -151,13 +157,16 @@ export function Header() {
               {session ? (
                 <>
                   <div className="mb-4">
-                    <CartSheet />
+                    <CartButton />
                   </div>
                   <Link href="/purchases" className={linkClass('/purchases', true)}>
                     <ShoppingCart className="w-4 h-4 mr-2" /> Purchases
                   </Link>
                   <Link href="/profile" className={linkClass('/profile', true)}>
                     <User className="w-4 h-4 mr-2" /> Profile
+                  </Link>
+                  <Link href="/discover" className={linkClass('/discover')}>
+                    <Search className="w-4 h-4 mr-2" /> Discover
                   </Link>
                   <Link href="/settings" className={linkClass('/settings', true)}>
                     <Settings className="w-4 h-4 mr-2" /> Settings

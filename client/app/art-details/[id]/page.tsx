@@ -1,5 +1,3 @@
-'use client'
-import { Suspense } from 'react'
 import ArtDetails from './ArtDetails'
 
 interface PageProps {
@@ -7,8 +5,7 @@ interface PageProps {
 }
 
 export default function ArtDetailsPage({ params }: PageProps) {
-  const id = params.id;
-  // console.log("this id though", id)
+  const { id } = params;
 
   return (    
       <ArtDetails id={id} />

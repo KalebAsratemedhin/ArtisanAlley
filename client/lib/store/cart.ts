@@ -7,14 +7,12 @@ export interface CartItem {
   price: number;
   image: string;
   artistId: string;
-  quantity: number;
 }
 
 interface CartStore {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
+  addItem: (item: CartItem) => void;
   removeItem: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   getTotal: () => number;
 }
@@ -27,15 +25,9 @@ export const useCartStore = create<CartStore>()(
         set((state) => {
           const existingItem = state.items.find((i) => i.id === item.id);
           if (existingItem) {
-            return {
-              items: state.items.map((i) =>
-                i.id === item.id
-                  ? { ...i, quantity: i.quantity + 1 }
-                  : i
-              ),
-            };
+            return state; // Don't add if item already exists
           }
-          return { items: [...state.items, { ...item, quantity: 1 }] };
+          return { items: [...state.items, item] };
         });
       },
       removeItem: (itemId) => {
@@ -43,17 +35,10 @@ export const useCartStore = create<CartStore>()(
           items: state.items.filter((item) => item.id !== itemId),
         }));
       },
-      updateQuantity: (itemId, quantity) => {
-        set((state) => ({
-          items: state.items.map((item) =>
-            item.id === itemId ? { ...item, quantity } : item
-          ),
-        }));
-      },
       clearCart: () => set({ items: [] }),
       getTotal: () => {
         const { items } = get();
-        return items.reduce((total, item) => total + item.price * item.quantity, 0);
+        return items.reduce((total, item) => total + item.price, 0);
       },
     }),
     {

@@ -36,6 +36,11 @@ interface Artist {
   id: string
   name: string
   avatar: string
+  followers: number
+}
+
+interface ArtworksByCategory {
+  [key: string]: Artwork[]
 }
 
 export async function DiscoverContent({ searchParams = {} }: Props) {
@@ -55,11 +60,13 @@ export async function DiscoverContent({ searchParams = {} }: Props) {
     )
   }
 
+  const typedArtworks = artworks as ArtworksByCategory
+
   return (
     <div className="md:flex">
       {/* Artworks */}
       <section className="bg-white w-full md:max-w-[calc(100%-20rem)] text-black py-10 px-6 md:px-16 space-y-12">
-        {Object.entries(artworks || {}).map(([category, artList]: [string, Artwork[]]) => (
+        {Object.entries(typedArtworks || {}).map(([category, artList]) => (
           <div key={category} className="space-y-4">
             <h2 className="text-2xl font-bold capitalize">{category}</h2>
             <Carousel>
@@ -70,22 +77,40 @@ export async function DiscoverContent({ searchParams = {} }: Props) {
                     className="sm:basis-1/2 md:basis-full lg:basis-1/2 xl:basis-1/3"
                   >
                     <Link href={`/art-details/${art.id}`}>
-                      <Card className="rounded-xl overflow-hidden hover:shadow-lg transition">
-                        <Image
-                          src={art.images[0]}
-                          alt={art.title}
-                          width={400}
-                          height={300}
-                          className="w-full h-60 object-cover"
-                        />
-                        <CardContent className="p-4">
-                          <h3 className="text-lg font-semibold">{art.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(art.created_at).getFullYear()} · ${art.price}
-                          </p>
-                          <p className="text-sm mt-1 text-gray-600">
-                            👍 {art.likeCount} &nbsp; 👎 {art.dislikeCount}
-                          </p>
+                      <Card className="rounded-xl pt-0 overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                        <div className="relative">
+                          <Image
+                            src={art.images[0]}
+                            alt={art.title}
+                            width={400}
+                            height={300}
+                            className="w-full h-60 object-cover"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                            <p className="text-white font-bold text-xl">
+                              ${art.price.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <CardContent className="p-4 space-y-3">
+                          <h3 className="text-lg font-semibold line-clamp-1">{art.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src={art.artist.avatar}
+                              alt={art.artist.name}
+                              width={24}
+                              height={24}
+                              className="rounded-full"
+                            />
+                            <p className="text-sm text-muted-foreground">{art.artist.name}</p>
+                          </div>
+                          <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <p>{new Date(art.created_at).toLocaleDateString()}</p>
+                            <div className="flex items-center gap-3">
+                              <span>👍 {art.likeCount}</span>
+                              <span>👎 {art.dislikeCount}</span>
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
                     </Link>
@@ -107,7 +132,7 @@ export async function DiscoverContent({ searchParams = {} }: Props) {
         ) : (
           <ul className="space-y-4">
             {(artists || []).map((artist: Artist) => (
-              <li key={artist.id} className="flex items-center gap-3">
+              <li key={artist.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                 <Image
                   src={artist.avatar}
                   alt={`${artist.name}'s Avatar`}
@@ -115,8 +140,9 @@ export async function DiscoverContent({ searchParams = {} }: Props) {
                   height={40}
                   className="rounded-full object-cover"
                 />
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold">{artist.name}</p>
+                  <p className="text-sm text-muted-foreground">{artist.followers} followers</p>
                 </div>
               </li>
             ))}

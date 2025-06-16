@@ -8,6 +8,9 @@ export async function getArtworks(filters: {
   priceRange?: string
 }) {
   const supabase = await createClient()
+  
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
 
   let query = supabase
     .from('ArtPiece')
@@ -23,6 +26,11 @@ export async function getArtworks(filters: {
       )
     `)
     .order('created_at', { ascending: false })
+
+  // Exclude current user's artworks
+  if (user) {
+    query = query.neq('user_id', user.id)
+  }
 
   if (filters.category) {
     query = query.eq('category', filters.category)
@@ -93,23 +101,36 @@ export async function getArtworks(filters: {
 export async function getSuggestedArtists() {
   const supabase = await createClient()
 
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Get artists with their profiles and follower counts
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, avatar_url')
-    .not('name', 'is', null) 
-    .limit(4)
-    .order('updated_at', { ascending: false })
+    .select(`
+      id,
+      name,
+      avatar_url,
+      followers:follows!following_id(count)
+    `)
+    .not('name', 'is', null)
+    .not('id', 'eq', user?.id) // Exclude current user
 
   if (error) {
     console.error('Error fetching suggested artists:', error)
     return { error: 'Failed to fetch suggested artists' }
   }
 
-  return {
-    artists: data.map(artist => ({
+  // Process and sort artists by follower count
+  const processedArtists = data
+    .map(artist => ({
       id: artist.id,
       name: artist.name || 'Anonymous',
       avatar: artist.avatar_url || 'https://source.unsplash.com/50?img=1',
+      followers: (artist.followers || []).length
     }))
-  }
+    .sort((a, b) => b.followers - a.followers)
+    .slice(0, 4) // Take top 4
+
+  return { artists: processedArtists }
 } 

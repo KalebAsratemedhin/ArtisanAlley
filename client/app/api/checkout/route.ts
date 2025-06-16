@@ -1,45 +1,76 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { createClient } from '@/lib/supabaseServer';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2025-05-28.basil'
 });
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { items } = body;
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!items || items.length === 0) {
+    if (userError) {
+      console.error('Auth error:', userError);
+      return NextResponse.json(
+        { error: 'Authentication error' },
+        { status: 401 }
+      );
+    }
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { items } = await req.json();
+
+    if (!items?.length) {
       return NextResponse.json(
         { error: 'No items provided' },
         { status: 400 }
       );
     }
 
-    const session = await stripe.checkout.sessions.create({
+    // Get the origin from the request
+    const origin = new URL(req.url).origin;
+
+    // Create Stripe checkout session
+    const checkoutSession = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: items.map((item: any) => ({
         price_data: {
           currency: 'usd',
           product_data: {
-            name: item.title || `Product ${item.id}`,
-            images: item.image ? [item.image] : undefined,
+            name: item.title,
+            images: [item.image],
           },
           unit_amount: Math.round(item.price * 100), // Convert to cents
         },
-        quantity: item.quantity,
+        quantity: 1,
       })),
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout`,
+      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout`,
+      metadata: {
+        userId: user.id,
+        artworkId: items[0].id, // Since we're handling one artwork at a time
+        artistId: items[0].artistId,
+      },
     });
 
-    return NextResponse.json({ sessionId: session.id });
-  } catch (error) {
-    console.error('Error in checkout:', error);
+    return NextResponse.json({ sessionId: checkoutSession.id });
+  } catch (error: any) {
+    console.error('Checkout error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error.message || 'An error occurred during checkout' },
       { status: 500 }
     );
   }
